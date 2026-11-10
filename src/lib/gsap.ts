@@ -12,3 +12,6 @@ export const prefersReducedMotion = () =>
 
 export const finePointer = () =>
   typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
+// Lets animation be paused and scrubbed from the console while developing.
+if (import.meta.env.DEV) (window as unknown as { gsap: typeof gsap }).gsap = gsap

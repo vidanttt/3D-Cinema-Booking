@@ -59,8 +59,9 @@ html.lenis,
 html.lenis body {
   height: auto;
 }
-.lenis.lenis-stopped {
-  overflow: clip;
+.lenis.lenis-stopped,
+html.scroll-lock {
+  overflow: hidden;
 }
 
 @layer components {
@@ -394,5 +395,84 @@ html.lenis body {
   .seat,
   .btn {
     transition-duration: 0.01ms;
+  }
+}
+
+@layer components {
+  /* ---------- Chips ---------- */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    height: 34px;
+    padding: 0 0.8em;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 550;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+    background: rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      inset 0 0 0 1px rgb(255 255 255 / 0.07);
+    transition:
+      background 0.3s ease,
+      color 0.3s ease,
+      box-shadow 0.3s ease,
+      transform 0.3s var(--ease-expo);
+  }
+  .chip[data-active='true'] {
+    color: #0b1a05;
+    background: linear-gradient(180deg, #c2ff9e, #98ec6e);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.6),
+      0 6px 20px -8px rgb(164 242 122 / 0.7);
+  }
+  button.chip:active {
+    transform: scale(0.94);
+  }
+  @media (hover: hover) {
+    button.chip:not([data-active='true']):hover {
+      background: rgb(255 255 255 / 0.15);
+    }
+  }
+  .chip-in {
+    animation: chip-in 0.55s var(--ease-expo) both;
+  }
+  @keyframes chip-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6) translateY(6px);
+    }
+  }
+
+  .glass-blur {
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+  }
+
+  /* ---------- Seat panel ---------- */
+  .seat-panel-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'id map'
+      'stats stats'
+      'ctl ctl';
+    gap: 14px 16px;
+    align-items: center;
+  }
+  @media (min-width: 1024px) {
+    .seat-panel-grid {
+      grid-template-columns: auto minmax(200px, 1fr) auto minmax(280px, 330px);
+      grid-template-areas: 'id stats map ctl';
+      gap: 32px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-in {
+    animation: none;
   }
 }

@@ -71,6 +71,8 @@ export interface CameraPose {
   shift?: number
 }
 
+const MAX_FOV = 104
+
 export const previewFor = (seat: Seat): SeatPreview => SEAT_PREVIEWS[seat.previewKey]
 
 /** Exact eye-level camera for a seat. */
@@ -78,11 +80,22 @@ export function seatPose(seat: Seat, aspect: number): CameraPose {
   const meta = { ...previewFor(seat).cameraMetadata, ...SEAT_OVERRIDES[seat.id] }
   // Blend FOV between portrait and landscape so resizing never pops.
   const t = Math.min(1, Math.max(0, (aspect - 0.6) / 0.9))
+  const base = meta.fovPortrait + (meta.fov - meta.fovPortrait) * t
+  const targetX = seat.xPosition * meta.headTurn
+  // Never crop the picture: on narrow viewports, widen the lens until both
+  // edges of the screen are in frame (up to an ultra-wide limit).
+  const gaze = Math.atan2(targetX - seat.xPosition, seat.zPosition)
+  const half = HALL.screenWidth / 2
+  const spread = Math.max(
+    Math.abs(Math.atan2(-half - seat.xPosition, seat.zPosition) - gaze),
+    Math.abs(Math.atan2(half - seat.xPosition, seat.zPosition) - gaze),
+  )
+  const needed = (2 * Math.atan(Math.tan(Math.min(spread * 1.07, 1.45)) / aspect) * 180) / Math.PI
   return {
     position: [seat.xPosition, seat.yPosition, seat.zPosition],
-    target: [seat.xPosition * meta.headTurn, meta.lookAtY, 0],
+    target: [targetX, meta.lookAtY, 0],
     up: [0, 1, 0],
-    fov: meta.fovPortrait + (meta.fov - meta.fovPortrait) * t,
+    fov: Math.min(MAX_FOV, Math.max(base, needed)),
     // In portrait the seat panel covers the lower third, so lift the picture.
     shift: 0.17 * (1 - t),
   }
@@ -107,15 +120,19 @@ export function overheadPose(seat: Seat, view: PlanRegistration): CameraPose {
   const height = (view.metresPerPx * view.height) / (2 * Math.tan((PLAN_FOV * Math.PI) / 360))
   const x = seat.xPosition - (view.x - view.width / 2) * view.metresPerPx
   const z = seat.zPosition - (view.y - view.height / 2) * view.metresPerPx
-  return { position: [x, height, z], target: [x, 0, z], up: [0, 0, -1], fov: PLAN_FOV }
+  // Measure the height from the chair, not the floor, so the raked rows do
+  // not drift off their 2D positions through perspective.
+  const chair = seat.yPosition - 0.5
+  return { position: [x, chair + height, z], target: [x, 0, z], up: [0, 0, -1], fov: PLAN_FOV }
 }
 
-/** A wide establishing shot from the back of the house. */
+/** A wide establishing shot from the back of the house, high enough to see
+ *  the booked seats glowing below. */
 export function heroPose(aspect: number): CameraPose {
   return {
-    position: [0, 5.4, HALL.depth - 2.2],
-    target: [0, SCREEN_CENTRE_Y - 0.9, 0],
+    position: [0, 7.1, HALL.depth - 1.2],
+    target: [0, SCREEN_CENTRE_Y - 2.6, 0],
     up: [0, 1, 0],
-    fov: aspect < 1 ? 74 : 44,
+    fov: aspect < 1 ? 78 : 46,
   }
 }

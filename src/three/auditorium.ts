@@ -87,7 +87,7 @@ export class Auditorium {
   private disposables: { dispose(): void }[] = []
   private raf = 0
   private running = false
-  private clock = new THREE.Clock()
+  private startedAt = performance.now()
   private pointer = new THREE.Vector2()
   private pointerEased = new THREE.Vector2()
   private flight: gsap.core.Tween | null = null
@@ -106,7 +106,7 @@ export class Auditorium {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75))
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.05
+    this.renderer.toneMappingExposure = 1.18
     this.scene.background = new THREE.Color('#040405')
     this.scene.fog = new THREE.FogExp2('#050506', 0.016)
 
@@ -421,18 +421,21 @@ export class Auditorium {
     const to = this.solve(pose)
     const from: Rig = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), fov: 50, shift: 0 }
     const state = { p: 0 }
+    let airborne = false
     this.flight?.kill()
     const tween = gsap.to(state, {
       p: 1,
       duration: this.reducedMotion ? 0.01 : duration,
       ease,
-      onStart: () => {
-        from.position.copy(this.rig.position)
-        from.quaternion.copy(this.rig.quaternion)
-        from.fov = this.rig.fov
-        from.shift = this.rig.shift
-      },
       onUpdate: () => {
+        // Take off from wherever the camera is on the first frame of the flight.
+        if (!airborne) {
+          airborne = true
+          from.position.copy(this.rig.position)
+          from.quaternion.copy(this.rig.quaternion)
+          from.fov = this.rig.fov
+          from.shift = this.rig.shift
+        }
         this.rig.position.lerpVectors(from.position, to.position, state.p)
         this.rig.quaternion.slerpQuaternions(from.quaternion, to.quaternion, state.p)
         this.rig.fov = from.fov + (to.fov - from.fov) * state.p
@@ -484,7 +487,7 @@ export class Auditorium {
   private frame = () => {
     if (!this.running) return
     this.raf = requestAnimationFrame(this.frame)
-    const t = this.clock.getElapsedTime()
+    const t = this.elapsed()
     if (!this.reducedMotion) {
       // Projector flicker and a slow drift across the frame.
       this.screenLight.intensity = 7 * (1 + Math.sin(t * 1.7) * 0.05 + Math.sin(t * 4.3) * 0.025)
@@ -500,16 +503,19 @@ export class Auditorium {
     this.renderer.render(this.scene, this.camera)
   }
 
+  private elapsed() {
+    return (performance.now() - this.startedAt) / 1000
+  }
+
   renderOnce() {
     if (this.running) return
-    this.applyCamera(this.clock.getElapsedTime())
+    this.applyCamera(this.elapsed())
     this.renderer.render(this.scene, this.camera)
   }
 
   start() {
     if (this.running) return
     this.running = true
-    this.clock.getDelta()
     this.raf = requestAnimationFrame(this.frame)
   }
 

@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, type PointerEvent } from 'react'
-import { ROWS, SEATS_BY_ROW, SEAT_BY_ID } from '../data/seats'
+import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent, type PointerEvent } from 'react'
+import { ROWS, SEATS_BY_ROW, SEAT_BY_ID, neighbour, type Direction } from '../data/seats'
 import { finePointer, gsap, prefersReducedMotion } from '../lib/gsap'
 import { SeatRow } from './SeatRow'
 import { SeatTooltip, type SeatTooltipHandle } from './SeatTooltip'
@@ -10,6 +10,9 @@ interface Props {
   occupied: ReadonlySet<string>
   onToggle: (id: string) => void
 }
+
+const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'forward', ArrowDown: 'back' }
+const NONE: ReadonlySet<string> = new Set()
 
 export function SeatMap({ sessionId, selected, occupied, onToggle }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -77,9 +80,21 @@ export function SeatMap({ sessionId, selected, occupied, onToggle }: Props) {
     tooltipRef.current?.hide()
   }
 
+  // Arrow keys walk the house, seat to seat.
+  const handleKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const direction = ARROWS[e.key]
+    const id = (e.target as HTMLElement).dataset?.seatId
+    const seat = id ? SEAT_BY_ID.get(id) : undefined
+    if (!direction || !seat) return
+    e.preventDefault()
+    const next = neighbour(seat, direction, NONE)
+    if (next) rootRef.current?.querySelector<HTMLElement>(`[data-seat-id="${next.id}"]`)?.focus()
+  }
+
   return (
     <div
       ref={rootRef}
+      onKeyDown={handleKey}
       data-anim="map"
       className="seatmap relative mx-auto w-full max-w-[860px]"
       onPointerOver={handleOver}
