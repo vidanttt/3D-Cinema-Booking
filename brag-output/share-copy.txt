@@ -1,0 +1,1 @@
+I built a cinema booking app that DROPS YOU INTO YOUR SEAT before you pay for it. Click a seat, the map tears open into a live 3D hall and you see the exact view: distance, angle, sightline score. Row A neck pain is now optional → 3d-cinema-booking.vercel.app

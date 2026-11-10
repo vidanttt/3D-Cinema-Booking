@@ -1,3 +1,10 @@
 node_modules
 dist
 *.tsbuildinfo
+
+# /brag intermediates (regenerate with brag-output/work scripts)
+brag-output/work/*
+!brag-output/work/*.cjs
+!brag-output/work/*.js
+!brag-output/work/*.py
+!brag-output/work/comp/
